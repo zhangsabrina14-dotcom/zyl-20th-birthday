@@ -45,7 +45,7 @@ const PAGES: Page[] = [
   },
 
   // 回忆（第五页为居中大文字框，其余为底部文字框）
-  { id: "m01", img: IMG(4), kind: "card", pos: "large", caption: "第一次见面我就把手机给丢了，你好耐心的帮我找，我觉得你人真好。" },
+  { id: "m01", img: IMG(4), kind: "card", pos: "large", caption: "嘿嘿，真是不好意思手机丢了没拍照" },
   { id: "m02", img: IMG(28), kind: "card", pos: "memory", caption: "哈哈哈，这是我们第一次约会吃饭，谁都没想到凌晨吃 69 折。" },
   { id: "m03", img: IMG(23), kind: "card", pos: "memory", caption: "两个人点了好多，我还用那个竹荪包虾滑，好美味呀。" },
   { id: "m04", img: IMG(22), kind: "card", pos: "memory", caption: "第一次一起野餐和我的朋友们还有小 I，好可爱好治愈的一张照片。" },
@@ -75,7 +75,7 @@ const PAGES: Page[] = [
     kind: "ending",
     pos: "large",
     caption:
-      "张羽伦，恭喜你20岁啦。虽然我们现在吵得很凶，甚至还在黑名单里躺着，但这个准备了很久的网页我还是决定按时上线。这不是妥协，只是因为这是早就为你准备好的20岁礼物，我不想因为一时的赌气让这份心意白费。不管现在的局面多糟糕，今天都希望你能好好过个生日，也希望我们都能在这个过程中变成更好的人。",
+      "张羽伦，恭喜你20岁啦。\n虽然我们现在吵得很凶，\n甚至还在黑名单里躺着，\n但这个准备了很久的网页，我还是决定按时上线。\n这不是妥协，只是因为这是早就为你准备好的20岁礼物，\n我不想因为一时的赌气，让这份心意白费。\n不管现在的局面多糟糕，今天都希望你能好好过个生日，\n也希望我们都能在这个过程中，变成更好的人。",
   },
 ];
 
@@ -169,6 +169,9 @@ function Caption({
       ? 11
       : 12;
 
+  // 结尾长文：两端对齐 + 大行距，其余居中
+  const isLong = pos === "large" && text.length > 80;
+
   return (
     <motion.div
       className={boxClass}
@@ -177,7 +180,13 @@ function Caption({
       animate="center"
       exit="exit"
     >
-      <span className="caption-text" style={{ fontSize: `${sizePx}px` }}>
+      <span
+        className="caption-text"
+        style={{
+          fontSize: `${sizePx}px`,
+          ...(isLong ? { textAlign: "justify", lineHeight: 2.2 } : {}),
+        }}
+      >
         {typed}
         {!done && <span className="caret" />}
       </span>
@@ -193,18 +202,23 @@ function HitArea({
   style,
   onClick,
   label,
+  className = "",
+  disabled = false,
 }: {
-  style: React.CSSProperties;
+  style?: React.CSSProperties;
   onClick: () => void;
   label: string;
+  className?: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       aria-label={label}
-      className="hit-area"
+      className={`hit-area${className ? " " + className : ""}`}
       style={style}
       onClick={onClick}
+      disabled={disabled}
     />
   );
 }
@@ -225,14 +239,13 @@ export default function App() {
   const enter = useCallback(() => go(1), [go]);
   const next = useCallback(() => setIndex((i) => i + 1), []);
   const prev = useCallback(() => setIndex((i) => i - 1), []);
-  const home = useCallback(() => go(0), [go]);
   const end = useCallback(() => setFinished(true), []);
   const restart = useCallback(() => {
     setFinished(false);
     go(0);
   }, [go]);
 
-  /* 结尾页打字机播完后自动显示“完” */
+  /* 结尾页打字机播完后解除热区禁用，等待用户点击触发“完” */
   const [endingDone, setEndingDone] = useState(false);
   const handleEndingDone = useCallback(() => setEndingDone(true), []);
 
@@ -240,13 +253,6 @@ export default function App() {
   useEffect(() => {
     setEndingDone(false);
   }, [index]);
-
-  // 结尾页文字全部打完后再延时弹出“完”
-  useEffect(() => {
-    if (!isEnding || !endingDone) return;
-    const t = setTimeout(() => setFinished(true), 900);
-    return () => clearTimeout(t);
-  }, [isEnding, endingDone]);
 
   /* 按钮布局（相对卡片容器的百分比，对应设计稿坐标） */
   const btnRow = useMemo(() => ({ top: "63%", height: "10%" }), []);
@@ -300,25 +306,25 @@ export default function App() {
                 />
                 <HitArea
                   label="下一页"
-                  style={{ ...btnRow, ...nextBtn }}
+                  className={
+                    page.id === "m01" || page.id === "m22" ? "next-hotzone" : ""
+                  }
+                  style={
+                    page.id === "m01" || page.id === "m22"
+                      ? undefined
+                      : { ...btnRow, ...nextBtn }
+                  }
                   onClick={next}
                 />
               </>
             )}
 
-            {isEnding && (
-              <>
-                <HitArea
-                  label="回到首页"
-                  style={{ ...btnRow, ...prevBtn }}
-                  onClick={home}
-                />
-                <HitArea
-                  label="结束"
-                  style={{ ...btnRow, ...nextBtn }}
-                  onClick={end}
-                />
-              </>
+            {isEnding && endingDone && (
+              <HitArea
+                label="结束"
+                className="ending-fullscreen"
+                onClick={end}
+              />
             )}
           </motion.div>
         </AnimatePresence>
@@ -364,6 +370,7 @@ export default function App() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
+          pointer-events: none;
         }
         .screen--bottom {
           justify-content: flex-end;
@@ -441,6 +448,29 @@ export default function App() {
           -webkit-tap-highlight-color: transparent;
           outline: none;
           z-index: 6;
+          pointer-events: auto;
+        }
+
+        .next-hotzone {
+          position: absolute;
+          right: 10%;
+          bottom: 15%;
+          width: 40%;
+          height: 15%;
+          z-index: 99999;
+          cursor: pointer;
+          background: transparent;
+          pointer-events: auto;
+        }
+
+        .ending-fullscreen {
+          position: absolute;
+          inset: 0;
+          width: 100vw;
+          height: 100vh;
+          z-index: 99999;
+          cursor: pointer;
+          pointer-events: auto;
         }
 
         .finish {
@@ -452,9 +482,9 @@ export default function App() {
           justify-content: center;
           background: #17121a;
           color: #e8b7bd;
-          font-size: 22px;
-          letter-spacing: 0.6em;
-          text-indent: 0.6em;
+          font-size: 44px;
+          letter-spacing: 0.5em;
+          text-indent: 0.5em;
           cursor: pointer;
         }
       `}</style>
