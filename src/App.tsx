@@ -16,7 +16,7 @@ type Page = {
 };
 
 const BASE = import.meta.env.BASE_URL;
-const IMG = (n: number) => `${BASE}images/photo-${n}.webp`;
+const IMG = (n: number) => `${BASE}images/photo-${n}.${n === 27 ? "png" : "webp"}`;
 
 const PAGES: Page[] = [
   { id: "cover", img: IMG(1), kind: "cover" },
@@ -370,7 +370,7 @@ export default function App() {
           box-sizing: border-box;
           padding: 8%;
           background-color: transparent;
-          background-image: url("${BASE}images/image11.webp");
+          background-image: url("${BASE}images/image11.svg");
           background-size: 100% 100%;
           background-repeat: no-repeat;
           display: flex;
