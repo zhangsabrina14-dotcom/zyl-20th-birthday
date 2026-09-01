@@ -45,7 +45,7 @@ const PAGES: Page[] = [
   },
 
   // 回忆（第五页为居中大文字框，其余为底部文字框）
-  { id: "m01", img: IMG(27), kind: "card", pos: "large", caption: "第一次见面我就把手机给丢了，你好耐心的帮我找，我觉得你人真好。" },
+  { id: "m01", img: IMG(4), kind: "card", pos: "large", caption: "第一次见面我就把手机给丢了，你好耐心的帮我找，我觉得你人真好。" },
   { id: "m02", img: IMG(28), kind: "card", pos: "memory", caption: "哈哈哈，这是我们第一次约会吃饭，谁都没想到凌晨吃 69 折。" },
   { id: "m03", img: IMG(23), kind: "card", pos: "memory", caption: "两个人点了好多，我还用那个竹荪包虾滑，好美味呀。" },
   { id: "m04", img: IMG(22), kind: "card", pos: "memory", caption: "第一次一起野餐和我的朋友们还有小 I，好可爱好治愈的一张照片。" },
@@ -71,7 +71,7 @@ const PAGES: Page[] = [
   // 结尾
   {
     id: "ending",
-    img: IMG(4),
+    img: IMG(27),
     kind: "ending",
     pos: "large",
     caption:
@@ -137,8 +137,20 @@ function useTypewriter(text: string, speed = 46, startDelay = 460) {
 /* 文字框：三个独立类名区分，Frame 2.svg 作背景，文字透明 flex 居中      */
 /* ------------------------------------------------------------------ */
 
-function Caption({ text, pos }: { text: string; pos: "intro" | "large" | "memory" }) {
+function Caption({
+  text,
+  pos,
+  onDone,
+}: {
+  text: string;
+  pos: "intro" | "large" | "memory";
+  onDone?: () => void;
+}) {
   const { typed, done } = useTypewriter(text);
+
+  useEffect(() => {
+    if (done && onDone) onDone();
+  }, [done, onDone]);
 
   const boxClass =
     pos === "large"
@@ -220,6 +232,22 @@ export default function App() {
     go(0);
   }, [go]);
 
+  /* 结尾页打字机播完后自动显示“完” */
+  const [endingDone, setEndingDone] = useState(false);
+  const handleEndingDone = useCallback(() => setEndingDone(true), []);
+
+  // 切页时重置结尾打字完成标记
+  useEffect(() => {
+    setEndingDone(false);
+  }, [index]);
+
+  // 结尾页文字全部打完后再延时弹出“完”
+  useEffect(() => {
+    if (!isEnding || !endingDone) return;
+    const t = setTimeout(() => setFinished(true), 900);
+    return () => clearTimeout(t);
+  }, [isEnding, endingDone]);
+
   /* 按钮布局（相对卡片容器的百分比，对应设计稿坐标） */
   const btnRow = useMemo(() => ({ top: "63%", height: "10%" }), []);
   const prevBtn = useMemo(() => ({ left: "4%", width: "28%" }), []);
@@ -241,7 +269,11 @@ export default function App() {
             <img className="screen-img" src={page.img} alt="" draggable={false} />
 
             {page.caption && (
-              <Caption text={page.caption} pos={page.pos ?? "memory"} />
+              <Caption
+                text={page.caption}
+                pos={page.pos ?? "memory"}
+                onDone={isEnding ? handleEndingDone : undefined}
+              />
             )}
 
             {isCover && (
@@ -318,8 +350,8 @@ export default function App() {
         }
         .phone {
           position: relative;
+          width: 100vw;
           height: 100vh;
-          width: min(100vw, calc(100vh * 2160 / 4674));
           overflow: hidden;
           background: #fdf0f1;
         }
@@ -338,9 +370,10 @@ export default function App() {
         }
         .screen-img {
           position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
           object-fit: cover;
           object-position: center;
           z-index: 0;
